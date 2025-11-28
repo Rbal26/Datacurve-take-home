@@ -1,0 +1,51 @@
+{
+    "schema_version": "1.0",
+    "trace_id": "example-trace-001",
+    "developer_id": "dev-alice",
+    "bug_id": "BUG-456",
+    "repo": {
+      "name": "sample-app",
+      "url": "https://github.com/example/sample-app",
+      "branch": "bugfix/null-pointer",
+      "commit_before": "abc123",
+      "commit_after": "def456",
+      "test_command": "pytest"
+    },
+    "start_time": "2025-11-27T10:00:00Z",
+    "end_time": "2025-11-27T10:30:00Z",
+    "events": [
+      {
+        "event_type": "file_open",
+        "timestamp": "2025-11-27T10:01:00Z",
+        "data": {
+          "file_path": "src/auth.py"
+        }
+      },
+      {
+        "event_type": "reasoning_step",
+        "timestamp": "2025-11-27T10:02:00Z",
+        "data": {
+          "content": "Suspect null pointer in user.profile access"
+        }
+      },
+      {
+        "event_type": "code_edit",
+        "timestamp": "2025-11-27T10:05:00Z",
+        "data": {
+          "file_path": "src/auth.py",
+          "diff": "@@ -45,7 +45,10 @@\n-    email = user.profile.email\n+    email = user.profile.email if user.profile else None"
+        }
+      },
+      {
+        "event_type": "terminal_command",
+        "timestamp": "2025-11-27T10:10:00Z",
+        "data": {
+          "command": "pytest tests/test_auth.py",
+          "exit_code": 0,
+          "output": "All tests passed",
+          "duration_ms": 1234
+        }
+      }
+    ],
+    "qa_results": null
+  }
