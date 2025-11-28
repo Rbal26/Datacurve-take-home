@@ -1,15 +1,20 @@
 import docker
 from pathlib import Path
 import os
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def run_tests_in_docker(repo_path: str, test_command: str, timeout: int = 300) -> dict:
     try:
+        logger.info(f"Starting Docker test execution: repo={repo_path}, command={test_command}")
         client = docker.from_env()
         
         abs_repo_path = Path(repo_path).absolute()
         
         if not abs_repo_path.exists():
+            logger.error(f"Repository path not found: {repo_path}")
             return {
                 "tests_passed": False,
                 "test_exit_code": -1,
@@ -43,6 +48,8 @@ def run_tests_in_docker(repo_path: str, test_command: str, timeout: int = 300) -
         
         output_snippet = output[:2000] if output else "No output"
         
+        logger.info(f"Docker tests completed: exit_code={exit_code}")
+        
         return {
             "tests_passed": exit_code == 0,
             "test_exit_code": exit_code,
@@ -50,12 +57,14 @@ def run_tests_in_docker(repo_path: str, test_command: str, timeout: int = 300) -
         }
         
     except docker.errors.DockerException as e:
+        logger.error(f"Docker error: {str(e)}")
         return {
             "tests_passed": False,
             "test_exit_code": -1,
             "test_output_snippet": f"Docker error: {str(e)}"
         }
     except Exception as e:
+        logger.error(f"Unexpected error during test execution: {str(e)}")
         return {
             "tests_passed": False,
             "test_exit_code": -1,
