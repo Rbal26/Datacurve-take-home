@@ -310,8 +310,10 @@ Note: The API_TOKEN should be set to `datacurve-takehome-token` for this demo. A
 **Step 5: Start the API**
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app
 ```
+
+Note: We run without `--reload` to avoid connection issues during testing. For development with auto-reload, you can use `uvicorn main:app --reload`, but be aware it may cause occasional connection drops when files change.
 
 You should see:
 ```
@@ -386,11 +388,65 @@ $traceId = ($response.Content | ConvertFrom-Json).trace_id
 Write-Host "Created trace: $traceId"
 ```
 
+Mac/Linux (curl):
+```bash
+# Create trace
+response=$(curl -s -X POST http://localhost:8000/traces \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer datacurve-takehome-token" \
+  -d '{
+    "developer_id": "test-dev",
+    "repo": {
+      "name": "sample-repo",
+      "url": "https://github.com/test/repo",
+      "branch": "main",
+      "commit_before": "abc",
+      "commit_after": "def",
+      "test_command": "pytest"
+    },
+    "start_time": "2025-11-28T10:00:00Z",
+    "events": [
+      {
+        "event_type": "reasoning_step",
+        "timestamp": "2025-11-28T10:01:00Z",
+        "data": {
+          "content": "I suspect the bug is in the login validation"
+        }
+      },
+      {
+        "event_type": "reasoning_step",
+        "timestamp": "2025-11-28T10:02:00Z",
+        "data": {
+          "content": "Added null check for user.profile before accessing email"
+        }
+      },
+      {
+        "event_type": "reasoning_step",
+        "timestamp": "2025-11-28T10:03:00Z",
+        "data": {
+          "content": "Ran tests and confirmed the fix works"
+        }
+      }
+    ]
+  }')
+
+trace_id=$(echo $response | grep -o '"trace_id":"[^"]*' | cut -d'"' -f4)
+echo "Created trace: $trace_id"
+```
+
 **2. Run QA pipeline (tests + LLM judge):**
 
+Windows (PowerShell):
 ```powershell
 $response = Invoke-WebRequest -Uri "http://localhost:8000/traces/$traceId/finalize" -Method POST -Headers @{"Authorization"="Bearer datacurve-takehome-token"}
 $response.Content | ConvertFrom-Json | ConvertTo-Json -Depth 10
+```
+
+Mac/Linux (curl):
+```bash
+# Run QA pipeline (this may take 10-20 seconds)
+curl -s -X POST "http://localhost:8000/traces/$trace_id/finalize" \
+  -H "Authorization: Bearer datacurve-takehome-token" | python3 -m json.tool
 ```
 
 You should see the complete trace with `qa_results` showing:

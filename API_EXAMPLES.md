@@ -3,7 +3,7 @@
 Copy-paste examples for testing the API.
 
 **Before running these:** 
-1. Make sure the API is running with `uvicorn main:app --reload`
+1. Make sure the API is running with `uvicorn main:app` (or `uvicorn main:app --reload` for development)
 2. Set your API token in `.env` to `datacurve-takehome-token`
 
 **Authentication:** All endpoints (except `/health`) require the Authorization header:
