@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.models import Trace
 from app.storage import save_trace, load_trace, append_events
+from app.qa import run_tests_in_docker, evaluate_reasoning
 
 router = APIRouter()
 
@@ -64,3 +65,36 @@ def append_trace_events(trace_id: str, payload: dict):
         raise HTTPException(status_code=404, detail=f"Trace {trace_id} not found")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/traces/{trace_id}/finalize")
+def finalize_trace(trace_id: str):
+    try:
+        trace = load_trace(trace_id)
+        
+        test_results = run_tests_in_docker("sample_repo", trace.repo.test_command)
+        
+        reasoning_steps = [
+            event.data.content 
+            for event in trace.events 
+            if event.event_type == "reasoning_step"
+        ]
+        
+        reasoning_results = evaluate_reasoning(reasoning_steps)
+        
+        from app.models import QAResults
+        trace.qa_results = QAResults(
+            tests_passed=test_results["tests_passed"],
+            test_exit_code=test_results["test_exit_code"],
+            test_output_snippet=test_results["test_output_snippet"],
+            reasoning_score=reasoning_results["reasoning_score"],
+            reasoning_feedback=reasoning_results["reasoning_feedback"]
+        )
+        
+        save_trace(trace)
+        
+        return trace
+        
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Trace {trace_id} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Finalization failed: {str(e)}")

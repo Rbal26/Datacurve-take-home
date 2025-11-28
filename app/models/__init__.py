@@ -1,4 +1,5 @@
 from .trace import Trace, RepoInfo
+from .qa_results import QAResults
 from .events import (
     Event,
     FileOpenEvent,
@@ -6,9 +7,9 @@ from .events import (
     CodeEditEvent,
     TerminalCommandEvent,
     TestResultEvent,
-    ReasoningStepEvent
+    ReasoningStepEvent,
+    ReasoningStepEventData 
 )
-from .qa_results import QAResults
 
 __all__ = [
     "Trace",
@@ -20,5 +21,6 @@ __all__ = [
     "TerminalCommandEvent",
     "TestResultEvent",
     "ReasoningStepEvent",
+    "ReasoningStepEventData",  
     "QAResults",
 ]
