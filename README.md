@@ -36,7 +36,7 @@ Datacurve-take-home/
 ### Step 1: Get the Code
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/Rbal26/Datacurve-take-home.git
 cd Datacurve-take-home
 ```
 
