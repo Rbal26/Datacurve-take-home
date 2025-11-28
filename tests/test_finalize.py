@@ -47,7 +47,7 @@ def trace_with_reasoning():
     )
 
 
-def test_finalize_endpoint_success(trace_with_reasoning):
+def test_finalize_endpoint_success(trace_with_reasoning, auth_headers):
     save_trace(trace_with_reasoning)
     
     with patch('app.qa.llm_judge.client') as mock_client:
@@ -56,7 +56,7 @@ def test_finalize_endpoint_success(trace_with_reasoning):
         mock_response.choices[0].message.content = '{"score": 4.0, "feedback": "Good reasoning"}'
         mock_client.chat.completions.create.return_value = mock_response
         
-        response = client.post("/traces/test-finalize-001/finalize")
+        response = client.post("/traces/test-finalize-001/finalize", headers=auth_headers)
         
         assert response.status_code == 200
         data = response.json()
@@ -65,12 +65,12 @@ def test_finalize_endpoint_success(trace_with_reasoning):
         assert data["qa_results"]["reasoning_score"] == 4.0
 
 
-def test_finalize_nonexistent_trace():
-    response = client.post("/traces/does-not-exist/finalize")
+def test_finalize_nonexistent_trace(auth_headers):
+    response = client.post("/traces/does-not-exist/finalize", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_finalize_without_reasoning_steps():
+def test_finalize_without_reasoning_steps(auth_headers):
     trace = Trace(
         trace_id="test-finalize-002",
         developer_id="dev-test",
@@ -87,7 +87,7 @@ def test_finalize_without_reasoning_steps():
     )
     save_trace(trace)
     
-    response = client.post("/traces/test-finalize-002/finalize")
+    response = client.post("/traces/test-finalize-002/finalize", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()

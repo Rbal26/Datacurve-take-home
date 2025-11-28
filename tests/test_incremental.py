@@ -36,7 +36,7 @@ def base_trace():
     )
 
 
-def test_append_events_to_existing_trace(base_trace):
+def test_append_events_to_existing_trace(base_trace, auth_headers):
     save_trace(base_trace)
     
     new_events = {
@@ -58,14 +58,14 @@ def test_append_events_to_existing_trace(base_trace):
         ]
     }
     
-    response = client.post("/traces/test-incremental-001/events", json=new_events)
+    response = client.post("/traces/test-incremental-001/events", json=new_events, headers=auth_headers)
     
     assert response.status_code == 200
     assert response.json()["trace_id"] == "test-incremental-001"
     assert response.json()["appended_events"] == 2
 
 
-def test_append_events_multiple_times(base_trace):
+def test_append_events_multiple_times(base_trace, auth_headers):
     save_trace(base_trace)
     
     first_batch = {
@@ -88,10 +88,10 @@ def test_append_events_multiple_times(base_trace):
         ]
     }
     
-    client.post("/traces/test-incremental-001/events", json=first_batch)
-    client.post("/traces/test-incremental-001/events", json=second_batch)
+    client.post("/traces/test-incremental-001/events", json=first_batch, headers=auth_headers)
+    client.post("/traces/test-incremental-001/events", json=second_batch, headers=auth_headers)
     
-    response = client.get("/traces/test-incremental-001")
+    response = client.get("/traces/test-incremental-001", headers=auth_headers)
     trace_data = response.json()
     
     assert len(trace_data["events"]) == 2
@@ -99,7 +99,7 @@ def test_append_events_multiple_times(base_trace):
     assert trace_data["events"][1]["data"]["content"] == "Second"
 
 
-def test_append_events_maintains_chronological_order(base_trace):
+def test_append_events_maintains_chronological_order(base_trace, auth_headers):
     save_trace(base_trace)
     
     # First batch with timestamp at 10:00
@@ -112,7 +112,7 @@ def test_append_events_maintains_chronological_order(base_trace):
             }
         ]
     }
-    client.post("/traces/test-incremental-001/events", json=first_batch)
+    client.post("/traces/test-incremental-001/events", json=first_batch, headers=auth_headers)
     
     # Second batch with earlier and later timestamps
     second_batch = {
@@ -129,9 +129,9 @@ def test_append_events_maintains_chronological_order(base_trace):
             }
         ]
     }
-    client.post("/traces/test-incremental-001/events", json=second_batch)
+    client.post("/traces/test-incremental-001/events", json=second_batch, headers=auth_headers)
     
-    response = client.get("/traces/test-incremental-001")
+    response = client.get("/traces/test-incremental-001", headers=auth_headers)
     events = response.json()["events"]
     
     assert len(events) == 3
@@ -140,7 +140,7 @@ def test_append_events_maintains_chronological_order(base_trace):
     assert events[2]["data"]["content"] == "Later"
 
 
-def test_append_to_nonexistent_trace():
+def test_append_to_nonexistent_trace(auth_headers):
     new_events = {
         "events": [
             {
@@ -151,18 +151,18 @@ def test_append_to_nonexistent_trace():
         ]
     }
     
-    response = client.post("/traces/does-not-exist/events", json=new_events)
+    response = client.post("/traces/does-not-exist/events", json=new_events, headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_append_empty_events_list(base_trace):
+def test_append_empty_events_list(base_trace, auth_headers):
     save_trace(base_trace)
     
-    response = client.post("/traces/test-incremental-001/events", json={"events": []})
+    response = client.post("/traces/test-incremental-001/events", json={"events": []}, headers=auth_headers)
     assert response.status_code == 400
 
 
-def test_append_invalid_event_type(base_trace):
+def test_append_invalid_event_type(base_trace, auth_headers):
     save_trace(base_trace)
     
     invalid_events = {
@@ -175,11 +175,11 @@ def test_append_invalid_event_type(base_trace):
         ]
     }
     
-    response = client.post("/traces/test-incremental-001/events", json=invalid_events)
+    response = client.post("/traces/test-incremental-001/events", json=invalid_events, headers=auth_headers)
     assert response.status_code == 400
 
 
-def test_append_mixed_event_types(base_trace):
+def test_append_mixed_event_types(base_trace, auth_headers):
     save_trace(base_trace)
     
     mixed_events = {
@@ -210,12 +210,12 @@ def test_append_mixed_event_types(base_trace):
         ]
     }
     
-    response = client.post("/traces/test-incremental-001/events", json=mixed_events)
+    response = client.post("/traces/test-incremental-001/events", json=mixed_events, headers=auth_headers)
     
     assert response.status_code == 200
     assert response.json()["appended_events"] == 3
     
-    trace_response = client.get("/traces/test-incremental-001")
+    trace_response = client.get("/traces/test-incremental-001", headers=auth_headers)
     events = trace_response.json()["events"]
     assert len(events) == 3
     assert events[0]["event_type"] == "file_open"

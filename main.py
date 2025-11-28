@@ -4,7 +4,8 @@ from app.api import router
 app = FastAPI(
     title="PR Telemetry Trace API",
     version="1.0.0",
-    description="Backend for collecting and validating developer debugging traces"
+    description="Backend for collecting and validating developer debugging traces",
+    max_body_size=10_000_000
 )
 
 app.include_router(router)

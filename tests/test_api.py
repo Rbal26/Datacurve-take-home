@@ -28,7 +28,7 @@ def test_health_endpoint():
     assert response.json()["status"] == "healthy"
 
 
-def test_create_trace():
+def test_create_trace(auth_headers):
     trace_data = {
         "trace_id": "test-api-001",
         "developer_id": "dev-api-test",
@@ -43,13 +43,13 @@ def test_create_trace():
         "start_time": "2025-11-27T10:00:00Z"
     }
     
-    response = client.post("/traces", json=trace_data)
+    response = client.post("/traces", json=trace_data, headers=auth_headers)
     assert response.status_code == 201
     assert response.json()["trace_id"] == "test-api-001"
     assert response.json()["status"] == "stored"
 
 
-def test_create_trace_without_id():
+def test_create_trace_without_id(auth_headers):
     trace_data = {
         "developer_id": "dev-api-test",
         "repo": {
@@ -63,13 +63,13 @@ def test_create_trace_without_id():
         "start_time": "2025-11-27T10:00:00Z"
     }
     
-    response = client.post("/traces", json=trace_data)
+    response = client.post("/traces", json=trace_data, headers=auth_headers)
     assert response.status_code == 201
     assert "trace_id" in response.json()
     assert len(response.json()["trace_id"]) == 36
 
 
-def test_get_trace():
+def test_get_trace(auth_headers):
     trace_data = {
         "trace_id": "test-api-002",
         "developer_id": "dev-api-test",
@@ -84,8 +84,8 @@ def test_get_trace():
         "start_time": "2025-11-27T10:00:00Z"
     }
     
-    client.post("/traces", json=trace_data)
-    response = client.get("/traces/test-api-002")
+    client.post("/traces", json=trace_data, headers=auth_headers)
+    response = client.get("/traces/test-api-002", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -93,22 +93,22 @@ def test_get_trace():
     assert data["developer_id"] == "dev-api-test"
 
 
-def test_get_nonexistent_trace():
-    response = client.get("/traces/does-not-exist")
+def test_get_nonexistent_trace(auth_headers):
+    response = client.get("/traces/does-not-exist", headers=auth_headers)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_create_invalid_trace():
+def test_create_invalid_trace(auth_headers):
     invalid_data = {
         "developer_id": "dev-test"
     }
     
-    response = client.post("/traces", json=invalid_data)
+    response = client.post("/traces", json=invalid_data, headers=auth_headers)
     assert response.status_code == 422
 
 
-def test_create_and_retrieve_with_events():
+def test_create_and_retrieve_with_events(auth_headers):
     trace_data = {
         "trace_id": "test-api-003",
         "developer_id": "dev-api-test",
@@ -132,8 +132,8 @@ def test_create_and_retrieve_with_events():
         ]
     }
     
-    client.post("/traces", json=trace_data)
-    response = client.get("/traces/test-api-003")
+    client.post("/traces", json=trace_data, headers=auth_headers)
+    response = client.get("/traces/test-api-003", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()

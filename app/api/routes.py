@@ -1,23 +1,42 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models import Trace
 from app.storage import save_trace, load_trace, append_events
 from app.qa import run_tests_in_docker, evaluate_reasoning
 from app.utils.logger import setup_logger
+from app.utils.auth import verify_api_key
+from app.utils.security import sanitize_file_path, sanitize_command
 
 logger = setup_logger(__name__)
 router = APIRouter()
 
 
 @router.post("/traces", status_code=201)
-def create_trace(trace: Trace):
+def create_trace(trace: Trace, authenticated: bool = Depends(verify_api_key)):
     logger.info(f"Received trace from developer {trace.developer_id} with {len(trace.events)} events")
+    
+    if not sanitize_command(trace.repo.test_command):
+        logger.warning(f"Rejected trace with potentially dangerous test command: {trace.repo.test_command}")
+        raise HTTPException(
+            status_code=400,
+            detail="test_command contains potentially dangerous patterns"
+        )
+    
+    for event in trace.events:
+        if event.event_type in ["file_open", "file_close", "code_edit"]:
+            if not sanitize_file_path(event.data.file_path):
+                logger.warning(f"Rejected trace with invalid file path: {event.data.file_path}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid file path in {event.event_type} event: {event.data.file_path}"
+                )
+    
     trace_id = save_trace(trace)
     logger.info(f"Trace {trace_id} stored successfully")
     return {"trace_id": trace_id, "status": "stored"}
 
 
 @router.get("/traces/{trace_id}")
-def get_trace(trace_id: str):
+def get_trace(trace_id: str, authenticated: bool = Depends(verify_api_key)):
     try:
         trace = load_trace(trace_id)
         logger.info(f"Retrieved trace {trace_id}")
@@ -27,7 +46,7 @@ def get_trace(trace_id: str):
         raise HTTPException(status_code=404, detail=f"Trace {trace_id} not found")
 
 @router.post("/traces/{trace_id}/events")
-def append_trace_events(trace_id: str, payload: dict):
+def append_trace_events(trace_id: str, payload: dict, authenticated: bool = Depends(verify_api_key)):
     try:
         events = payload.get("events", [])
         
@@ -60,7 +79,17 @@ def append_trace_events(trace_id: str, payload: dict):
                 }
                 
                 if event_type in event_map:
-                    validated_events.append(event_map[event_type].model_validate(event_data))
+                    validated_event = event_map[event_type].model_validate(event_data)
+                    
+                    if event_type in ["file_open", "file_close", "code_edit"]:
+                        if not sanitize_file_path(validated_event.data.file_path):
+                            logger.warning(f"Rejected event with invalid file path: {validated_event.data.file_path}")
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Invalid file path in {event_type} event"
+                            )
+                    
+                    validated_events.append(validated_event)
                 else:
                     raise HTTPException(status_code=400, detail=f"Invalid event_type: {event_type}")
             else:
@@ -78,7 +107,7 @@ def append_trace_events(trace_id: str, payload: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/traces/{trace_id}/finalize")
-def finalize_trace(trace_id: str):
+def finalize_trace(trace_id: str, authenticated: bool = Depends(verify_api_key)):
     try:
         logger.info(f"Starting QA pipeline for trace {trace_id}")
         trace = load_trace(trace_id)

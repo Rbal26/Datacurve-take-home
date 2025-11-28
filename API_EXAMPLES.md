@@ -2,11 +2,19 @@
 
 Copy-paste examples for testing the API.
 
-**Before running these:** Make sure the API is running with `uvicorn main:app --reload`
+**Before running these:** 
+1. Make sure the API is running with `uvicorn main:app --reload`
+2. Set your API token in `.env` to `datacurve-takehome-token`
+
+**Authentication:** All endpoints (except `/health`) require the Authorization header:
+- PowerShell: `-Headers @{"Authorization"="Bearer datacurve-takehome-token"}`
+- curl: `-H "Authorization: Bearer datacurve-takehome-token"`
 
 ---
 
 ## Health Check
+
+This endpoint does NOT require authentication.
 
 **Windows:**
 ```powershell
@@ -28,6 +36,11 @@ The API will auto-generate a trace ID for you.
 
 **Windows:**
 ```powershell
+$headers = @{
+    "Authorization" = "Bearer datacurve-takehome-token"
+    "Content-Type" = "application/json"
+}
+
 $body = @{
     developer_id = "dev-001"
     repo = @{
@@ -41,7 +54,7 @@ $body = @{
     start_time = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
 } | ConvertTo-Json
 
-$response = Invoke-WebRequest -Uri http://localhost:8000/traces -Method POST -ContentType "application/json" -Body $body
+$response = Invoke-WebRequest -Uri http://localhost:8000/traces -Method POST -Headers $headers -Body $body
 $traceId = ($response.Content | ConvertFrom-Json).trace_id
 Write-Host "Created trace: $traceId"
 ```
@@ -50,6 +63,7 @@ Write-Host "Created trace: $traceId"
 ```bash
 response=$(curl -s -X POST http://localhost:8000/traces \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer datacurve-takehome-token" \
   -d "{
     \"developer_id\": \"dev-001\",
     \"repo\": {
@@ -77,6 +91,11 @@ Replace `<trace-id>` with your actual trace ID from above.
 
 **Windows:**
 ```powershell
+$headers = @{
+    "Authorization" = "Bearer datacurve-takehome-token"
+    "Content-Type" = "application/json"
+}
+
 $events = @{
     events = @(
         @{
@@ -87,13 +106,14 @@ $events = @{
     )
 } | ConvertTo-Json -Depth 10
 
-Invoke-WebRequest -Uri "http://localhost:8000/traces/<trace-id>/events" -Method POST -ContentType "application/json" -Body $events
+Invoke-WebRequest -Uri "http://localhost:8000/traces/<trace-id>/events" -Method POST -Headers $headers -Body $events
 ```
 
 **Mac/Linux:**
 ```bash
 curl -X POST http://localhost:8000/traces/<trace-id>/events \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer datacurve-takehome-token" \
   -d "{
     \"events\": [
       {
@@ -117,12 +137,14 @@ This runs the tests in Docker and evaluates reasoning with GPT-4o-mini.
 
 **Windows:**
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:8000/traces/<trace-id>/finalize" -Method POST
+$headers = @{"Authorization" = "Bearer datacurve-takehome-token"}
+Invoke-WebRequest -Uri "http://localhost:8000/traces/<trace-id>/finalize" -Method POST -Headers $headers
 ```
 
 **Mac/Linux:**
 ```bash
-curl -X POST http://localhost:8000/traces/<trace-id>/finalize
+curl -X POST http://localhost:8000/traces/<trace-id>/finalize \
+  -H "Authorization: Bearer datacurve-takehome-token"
 ```
 
 This returns the full trace with `qa_results` populated.
@@ -133,12 +155,14 @@ This returns the full trace with `qa_results` populated.
 
 **Windows:**
 ```powershell
-Invoke-WebRequest http://localhost:8000/traces/<trace-id>
+$headers = @{"Authorization" = "Bearer datacurve-takehome-token"}
+Invoke-WebRequest http://localhost:8000/traces/<trace-id> -Headers $headers
 ```
 
 **Mac/Linux:**
 ```bash
-curl http://localhost:8000/traces/<trace-id>
+curl http://localhost:8000/traces/<trace-id> \
+  -H "Authorization: Bearer datacurve-takehome-token"
 ```
 
 ---
