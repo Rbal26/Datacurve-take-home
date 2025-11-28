@@ -530,7 +530,7 @@ See API_EXAMPLES.md for complete examples with PowerShell and curl.
 
 ## Testing
 
-The project includes 53 tests across 7 test files:
+The project includes 53 tests across 8 test files:
 
 - `test_models.py` (11 tests): Pydantic model validation
 - `test_storage.py` (6 tests): File persistence operations
