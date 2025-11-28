@@ -33,3 +33,10 @@ def load_trace(trace_id: str) -> Trace:
 def trace_exists(trace_id: str) -> bool:
     file_path = DATA_DIR / f"{trace_id}.json"
     return file_path.exists()
+
+def append_events(trace_id: str, events: list) -> int:
+    trace = load_trace(trace_id)
+    trace.events.extend(events)
+    trace.events.sort(key=lambda e: e.timestamp)
+    save_trace(trace)
+    return len(events)
